@@ -1,7 +1,6 @@
-use std::process::exit;
 use std::time::Instant;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TokenType {
     Unknown,
 
@@ -17,7 +16,7 @@ pub enum TokenType {
     Identifier,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub literal: String,
     pub token_type: TokenType,
@@ -123,7 +122,10 @@ impl Lexer {
         }
 
         self.read_char();
-        identifier += &*self.ch.unwrap().to_string();
+
+        if self.ch.is_some() {
+            identifier += &*self.ch.unwrap().to_string();
+        }
 
         return identifier;
     }
@@ -170,3 +172,89 @@ pub fn lex_content(content: Vec<String>) -> Vec<Token> {
 
     return tokens;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lexing_content() {
+        let mut l = Lexer::new(concat!(
+            "INCLUDE \"foo.asm\"\n",
+            "; simple comment"
+        ).to_string());
+
+        let expected_tokens = vec![
+            Token {
+                literal: "INCLUDE".to_string(),
+                token_type: TokenType::Identifier
+            },
+            Token {
+                literal: " ".to_string(),
+                token_type: TokenType::Space
+            },
+            Token {
+                literal: "\"".to_string(),
+                token_type: TokenType::DoubleQuote
+            },
+            Token {
+                literal: "foo".to_string(),
+                token_type: TokenType::Identifier
+            },
+            Token {
+                literal: ".".to_string(),
+                token_type: TokenType::Dot
+            },
+            Token {
+                literal: "asm".to_string(),
+                token_type: TokenType::Identifier
+            },
+            Token {
+                literal: "\"".to_string(),
+                token_type: TokenType::DoubleQuote
+            },
+            Token {
+                literal: "\n".to_string(),
+                token_type: TokenType::LineBreak
+            },
+            Token {
+                literal: ";".to_string(),
+                token_type: TokenType::SemiColon
+            },
+            Token {
+                literal: " ".to_string(),
+                token_type: TokenType::Space
+            },
+            Token {
+                literal: "simple".to_string(),
+                token_type: TokenType::Identifier
+            },
+            Token {
+                literal: " ".to_string(),
+                token_type: TokenType::Space
+            },
+            Token {
+                literal: "comment".to_string(),
+                token_type: TokenType::Identifier
+            },
+        ];
+
+        let mut output_tokens = vec![];
+        let mut r = l.retrieve_next_token();
+
+        while r.is_ok() {
+            output_tokens.push(r.unwrap());
+            r = l.retrieve_next_token();
+        }
+
+        assert_eq!(expected_tokens.len(), output_tokens.len());
+        for i in 0..expected_tokens.len() {
+            let exp_tok: Token = expected_tokens[i].clone();
+            let output_tok: Token = expected_tokens[i].clone();
+
+            assert_eq!(exp_tok.literal, output_tok.literal);
+            assert_eq!(exp_tok.token_type, output_tok.token_type);
+        }
+    }
+}
+
