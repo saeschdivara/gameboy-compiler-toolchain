@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "gameboy-compiler-toolchain_"
+name = "gameboy-compiler-toolchain"
 version = "0.1.0"
