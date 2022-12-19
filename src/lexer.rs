@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TokenType {
     Unknown,
@@ -14,6 +12,8 @@ pub enum TokenType {
     SemiColon,
 
     Identifier,
+
+    EOF,
 }
 
 #[derive(Debug, Clone)]
@@ -48,7 +48,6 @@ impl Lexer {
             read_position: 0,
             ch: None,
         };
-
 
         l.read_char();
 
@@ -155,13 +154,10 @@ impl Lexer {
 pub fn lex_content(content: Vec<String>) -> Vec<Token> {
     let mut c: String = "".to_string();
 
-    let start = Instant::now();
     for x in content {
         c += &*x;
         c += "\n";
     }
-    let duration = start.elapsed();
-    println!("Concat strings: {:?}", duration);
 
     let mut lexer = Lexer::new(c);
     let mut tokens: Vec<Token> = vec![];
@@ -179,63 +175,60 @@ mod tests {
 
     #[test]
     fn lexing_content() {
-        let mut l = Lexer::new(concat!(
-            "INCLUDE \"foo.asm\"\n",
-            "; simple comment"
-        ).to_string());
+        let mut l = Lexer::new(concat!("INCLUDE \"foo.asm\"\n", "; simple comment").to_string());
 
         let expected_tokens = vec![
             Token {
                 literal: "INCLUDE".to_string(),
-                token_type: TokenType::Identifier
+                token_type: TokenType::Identifier,
             },
             Token {
                 literal: " ".to_string(),
-                token_type: TokenType::Space
+                token_type: TokenType::Space,
             },
             Token {
                 literal: "\"".to_string(),
-                token_type: TokenType::DoubleQuote
+                token_type: TokenType::DoubleQuote,
             },
             Token {
                 literal: "foo".to_string(),
-                token_type: TokenType::Identifier
+                token_type: TokenType::Identifier,
             },
             Token {
                 literal: ".".to_string(),
-                token_type: TokenType::Dot
+                token_type: TokenType::Dot,
             },
             Token {
                 literal: "asm".to_string(),
-                token_type: TokenType::Identifier
+                token_type: TokenType::Identifier,
             },
             Token {
                 literal: "\"".to_string(),
-                token_type: TokenType::DoubleQuote
+                token_type: TokenType::DoubleQuote,
             },
             Token {
                 literal: "\n".to_string(),
-                token_type: TokenType::LineBreak
+                token_type: TokenType::LineBreak,
             },
             Token {
                 literal: ";".to_string(),
-                token_type: TokenType::SemiColon
+                token_type: TokenType::SemiColon,
             },
             Token {
                 literal: " ".to_string(),
-                token_type: TokenType::Space
+                token_type: TokenType::Space,
             },
             Token {
                 literal: "simple".to_string(),
-                token_type: TokenType::Identifier
+                token_type: TokenType::Identifier,
             },
             Token {
                 literal: " ".to_string(),
-                token_type: TokenType::Space
+                token_type: TokenType::Space,
             },
             Token {
                 literal: "comment".to_string(),
-                token_type: TokenType::Identifier
+                token_type: TokenType::Identifier,
             },
         ];
 
@@ -257,4 +250,3 @@ mod tests {
         }
     }
 }
-
