@@ -20,7 +20,22 @@ impl Statement for IncludeStatement {
     }
 
     fn to_string(&self) -> String {
-        return "INCLUDE ".to_string() + &*self.path;
+        return "INCLUDE ".to_string() + "\"" + self.path.as_str() + "\"";
+    }
+}
+
+pub struct SectionStatement {
+    pub name: String,
+    pub section_type: String,
+}
+
+impl Statement for SectionStatement {
+    fn my_type(&self) -> StatementType {
+        return StatementType::Section;
+    }
+
+    fn to_string(&self) -> String {
+        return "SECTION ".to_string() + "\"" + self.name.as_str() + "\"";
     }
 }
 

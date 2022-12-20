@@ -52,7 +52,10 @@ impl Parser {
             TokenType::DoubleQuote => {}
             TokenType::Comma => {}
             TokenType::Dot => {}
-            TokenType::SemiColon => {}
+            TokenType::SemiColon => {
+                self.skip_comment();
+                return self.next_statement();
+            }
             TokenType::Identifier => {
                 if token.literal.to_lowercase() == "include".to_string() {
                     self.skip_spaces();
@@ -65,11 +68,44 @@ impl Parser {
                         }
                     }
 
-                    // skip quote
                     let path = self.next_string();
 
                     return Ok(Box::new(ast::IncludeStatement {
                         path,
+                    }))
+                }
+
+                else if token.literal.to_lowercase() == "section".to_string() {
+                    self.skip_spaces();
+
+                    if let Some(k) = self.token.as_ref() {
+                        if k.token_type != TokenType::DoubleQuote {
+                            return Err(ParsingError {
+                                error_message: "Missing \" after section"
+                            })
+                        }
+                    }
+
+                    let name = self.next_string();
+
+                    if let Some(k) = self.token.as_ref() {
+                        if k.token_type != TokenType::Comma {
+                            return Err(ParsingError {
+                                error_message: "Missing , after include name"
+                            })
+                        }
+                    }
+
+                    // skip comma
+                    self.next_token();
+
+                    self.skip_spaces();
+
+                    let section_type = self.token.as_ref().unwrap();
+
+                    return Ok(Box::new(ast::SectionStatement {
+                        name,
+                        section_type: section_type.literal.clone(),
                     }))
                 }
             }
@@ -86,6 +122,18 @@ impl Parser {
 
         while let Some(tok) = self.token.as_ref() {
             if tok.token_type != TokenType::Space && tok.token_type != TokenType::LineBreak {
+                break
+            }
+
+            self.next_token();
+        }
+    }
+
+    fn skip_comment(&mut self) {
+        self.next_token();
+
+        while let Some(tok) = self.token.as_ref() {
+            if tok.token_type == TokenType::LineBreak {
                 break
             }
 
@@ -138,9 +186,13 @@ pub fn parse_ast(tokens: Vec<lexer::Token>) -> Result<ast::Ast, ParsingError> {
     let mut parser = Parser::new(tokens);
     let mut statements = vec![];
     let mut stmt = parser.next_statement();
-    while stmt.is_ok() {
+    while stmt.is_ok() && parser.token.is_some() {
         statements.push(stmt.unwrap());
         stmt = parser.next_statement();
+    }
+
+    if stmt.is_err() {
+        println!("Error: {}", stmt.err().unwrap().error_message)
     }
 
     return Ok(ast::Ast {
