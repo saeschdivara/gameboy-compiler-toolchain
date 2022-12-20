@@ -58,55 +58,11 @@ impl Parser {
             }
             TokenType::Identifier => {
                 if token.literal.to_lowercase() == "include".to_string() {
-                    self.skip_spaces();
-
-                    if let Some(k) = self.token.as_ref() {
-                        if k.token_type != TokenType::DoubleQuote {
-                            return Err(ParsingError {
-                                error_message: "Missing \" after include"
-                            })
-                        }
-                    }
-
-                    let path = self.next_string();
-
-                    return Ok(Box::new(ast::IncludeStatement {
-                        path,
-                    }))
+                    return self.parse_include()
                 }
 
                 else if token.literal.to_lowercase() == "section".to_string() {
-                    self.skip_spaces();
-
-                    if let Some(k) = self.token.as_ref() {
-                        if k.token_type != TokenType::DoubleQuote {
-                            return Err(ParsingError {
-                                error_message: "Missing \" after section"
-                            })
-                        }
-                    }
-
-                    let name = self.next_string();
-
-                    if let Some(k) = self.token.as_ref() {
-                        if k.token_type != TokenType::Comma {
-                            return Err(ParsingError {
-                                error_message: "Missing , after include name"
-                            })
-                        }
-                    }
-
-                    // skip comma
-                    self.next_token();
-
-                    self.skip_spaces();
-
-                    let section_type = self.token.as_ref().unwrap();
-
-                    return Ok(Box::new(ast::SectionStatement {
-                        name,
-                        section_type: section_type.literal.clone(),
-                    }))
+                    return parse_section()
                 }
             }
             TokenType::EOF => {}
@@ -115,6 +71,58 @@ impl Parser {
         return Err(ParsingError {
             error_message: "Unsupported token found"
         })
+    }
+
+    fn parse_include(&mut self) -> Result<Box<dyn ast::Statement>, ParsingError> {
+        self.skip_spaces();
+
+        if let Some(k) = self.token.as_ref() {
+            if k.token_type != TokenType::DoubleQuote {
+                return Err(ParsingError {
+                    error_message: "Missing \" after include"
+                })
+            }
+        }
+
+        let path = self.next_string();
+
+        return Ok(Box::new(ast::IncludeStatement {
+            path,
+        }))
+    }
+
+    fn parse_section(&mut self) -> Result<Box<dyn ast::Statement>, ParsingError> {
+        self.skip_spaces();
+
+        if let Some(k) = self.token.as_ref() {
+            if k.token_type != TokenType::DoubleQuote {
+                return Err(ParsingError {
+                    error_message: "Missing \" after section"
+                })
+            }
+        }
+
+        let name = self.next_string();
+
+        if let Some(k) = self.token.as_ref() {
+            if k.token_type != TokenType::Comma {
+                return Err(ParsingError {
+                    error_message: "Missing , after include name"
+                })
+            }
+        }
+
+        // skip comma
+        self.next_token();
+
+        self.skip_spaces();
+
+        let section_type = self.token.as_ref().unwrap();
+
+        return Ok(Box::new(ast::SectionStatement {
+            name,
+            section_type: section_type.literal.clone(),
+        }))
     }
 
     fn skip_spaces(&mut self) {
