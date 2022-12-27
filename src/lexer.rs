@@ -10,6 +10,7 @@ pub enum TokenType {
     DoubleQuote,
     Comma,
     Dot,
+    Colon,
     SemiColon,
 
     Number,
@@ -93,6 +94,10 @@ impl Lexer {
                 ';' => Ok(Token {
                     literal: c.to_string(),
                     token_type: TokenType::SemiColon,
+                }),
+                ':' => Ok(Token {
+                    literal: c.to_string(),
+                    token_type: TokenType::Colon,
                 }),
                 '$' => Ok(Token {
                     literal: self.read_number(),
@@ -276,6 +281,68 @@ mod tests {
             r = l.retrieve_next_token();
         }
 
+        validate_tokens(expected_tokens, output_tokens);
+    }
+
+    #[test]
+    fn lexing_macro() {
+        let mut l = Lexer::new(concat!("foo: MACRO\nsetcharmap no_ngrams\nENDM").to_string());
+
+        let expected_tokens = vec![
+            Token {
+                literal: "foo".to_string(),
+                token_type: TokenType::Identifier,
+            },
+            Token {
+                literal: ":".to_string(),
+                token_type: TokenType::Colon,
+            },
+            Token {
+                literal: " ".to_string(),
+                token_type: TokenType::Space,
+            },
+            Token {
+                literal: "MACRO".to_string(),
+                token_type: TokenType::Identifier,
+            },
+            Token {
+                literal: "\n".to_string(),
+                token_type: TokenType::LineBreak,
+            },
+            Token {
+                literal: "setcharmap".to_string(),
+                token_type: TokenType::Identifier,
+            },
+            Token {
+                literal: " ".to_string(),
+                token_type: TokenType::Space,
+            },
+            Token {
+                literal: "no_ngrams".to_string(),
+                token_type: TokenType::Identifier,
+            },
+            Token {
+                literal: "\n".to_string(),
+                token_type: TokenType::LineBreak,
+            },
+            Token {
+                literal: "ENDM".to_string(),
+                token_type: TokenType::Identifier,
+            },
+        ];
+
+        let mut output_tokens = vec![];
+        let mut r = l.retrieve_next_token();
+
+        while r.is_ok() {
+            output_tokens.push(r.unwrap());
+            r = l.retrieve_next_token();
+        }
+
+        validate_tokens(expected_tokens, output_tokens);
+    }
+
+    fn validate_tokens(expected_tokens: Vec<Token>, output_tokens: Vec<Token>) {
         assert_eq!(expected_tokens.len(), output_tokens.len());
         for i in 0..expected_tokens.len() {
             let exp_tok: Token = expected_tokens[i].clone();

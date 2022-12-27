@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter};
+use crate::lexer::Token;
 
 pub enum StatementType {
     Section,
@@ -8,6 +9,7 @@ pub enum StatementType {
     NewCharMap,
     CharMap,
     SetCharMap,
+    Macro,
 }
 
 pub trait Statement {
@@ -58,7 +60,7 @@ impl Statement for IfStatement {
 }
 
 pub struct NewCharMapStatement {
-    pub name: String
+    pub names: Vec<String>
 }
 
 impl Statement for NewCharMapStatement {
@@ -67,7 +69,7 @@ impl Statement for NewCharMapStatement {
     }
 
     fn to_string(&self) -> String {
-        return "New Char Map ".to_string() + self.name.as_str();
+        return "New Char Map ".to_string() + self.names.join(", ").as_str();
     }
 }
 
@@ -86,6 +88,20 @@ impl Statement for CharMapStatement {
     }
 }
 
+pub struct SetCharMapStatement {
+    pub name: String,
+}
+
+impl Statement for SetCharMapStatement {
+    fn my_type(&self) -> StatementType {
+        return StatementType::SetCharMap;
+    }
+
+    fn to_string(&self) -> String {
+        return "Set Char Map \"".to_string() + self.name.as_str() + "\"";
+    }
+}
+
 pub struct DefStatement {
     pub name: String,
     pub value: String,
@@ -98,6 +114,21 @@ impl Statement for DefStatement {
 
     fn to_string(&self) -> String {
         return "DEF \"".to_string() + self.name.as_str() + "\" " + self.value.as_str();
+    }
+}
+
+pub struct MacroStatement {
+    pub name: String,
+    pub tokens: Vec<Token>,
+}
+
+impl Statement for MacroStatement {
+    fn my_type(&self) -> StatementType {
+        return StatementType::Macro;
+    }
+
+    fn to_string(&self) -> String {
+        return "Macro \"".to_string() + self.name.as_str() + "\"";
     }
 }
 

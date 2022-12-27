@@ -55,13 +55,27 @@ impl Parser {
                     return self.parse_section();
                 } else if token.literal.to_lowercase() == "if".to_string() {
                     return self.parse_if();
+                } else if token.literal.to_lowercase() == "setcharmap".to_string() {
+                    return self.parse_set_char_map();
                 } else if token.literal.to_lowercase() == "newcharmap".to_string() {
                     return self.parse_new_char_map();
                 } else if token.literal.to_lowercase() == "charmap".to_string() {
                     return self.parse_char_map();
                 } else if let Some(f) = self.peek_token() {
+                    let possible_name = token.literal.clone();
+
                     if f.literal.to_lowercase() == "equ" {
                         return self.parse_def()
+                    } else {
+                        self.skip_spaces();
+
+                        if let Some(tok) = self.peek_token() {
+                            if tok.token_type == TokenType::Identifier && tok.literal.to_lowercase() == "macro" {
+                                self.next_token();
+                                self.next_token();
+                                return self.parse_macro(possible_name)
+                            }
+                        }
                     }
                 }
             }
@@ -88,6 +102,24 @@ impl Parser {
 
         return Ok(Box::new(ast::IncludeStatement {
             path,
+        }));
+    }
+
+    fn parse_macro(&mut self, macro_name: String) -> Result<Box<dyn ast::Statement>, ParsingError> {
+        let mut tokens = vec![];
+
+        while let Some(tok) = self.token.as_ref() {
+            if tok.token_type == TokenType::Identifier && tok.literal.to_lowercase() == "endm" {
+                break
+            }
+
+            tokens.push(tok.clone());
+            self.next_token();
+        }
+
+        return Ok(Box::new(ast::MacroStatement {
+            name: macro_name,
+            tokens,
         }));
     }
 
@@ -143,6 +175,30 @@ impl Parser {
         ));
     }
 
+    fn parse_set_char_map(&mut self) -> Result<Box<dyn ast::Statement>, ParsingError> {
+        self.skip_spaces();
+
+        if let Some(tok) = self.token.as_ref() {
+            if tok.token_type != TokenType::Identifier {
+                return Err(ParsingError {
+                    error_message: "No identifier after setcharmap"
+                })
+            }
+
+            let char_map_name = tok.clone().literal;
+
+            return Ok(Box::new(
+                ast::SetCharMapStatement{
+                    name: char_map_name,
+                }
+            ));
+        }
+
+        return Err(ParsingError {
+            error_message: "Invalid token found"
+        })
+    }
+
     fn parse_new_char_map(&mut self) -> Result<Box<dyn ast::Statement>, ParsingError> {
         self.skip_spaces();
 
@@ -154,10 +210,23 @@ impl Parser {
             }
 
             let char_map_name = tok.clone().literal;
+            let mut names = vec![char_map_name];
+
+            while let Some(tok) = self.peek_token() {
+                if tok.token_type != TokenType::Comma && tok.token_type != TokenType::Space {
+                    break
+                }
+
+                self.next_token();
+                self.next_token();
+                self.next_token();
+
+                names.push(self.token.as_ref().unwrap().literal.clone())
+            }
 
             return Ok(Box::new(
                 ast::NewCharMapStatement{
-                    name: char_map_name
+                    names,
                 }
             ));
         }
@@ -307,6 +376,8 @@ pub fn parse_ast(tokens: Vec<lexer::Token>) -> Result<ast::Ast, ParsingError> {
 
     if stmt.is_err() {
         println!("Error: {}", stmt.err().unwrap().error_message)
+    } else {
+        statements.push(stmt.unwrap());
     }
 
     return Ok(ast::Ast {
