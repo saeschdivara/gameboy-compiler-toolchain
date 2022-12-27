@@ -3,6 +3,7 @@ pub enum TokenType {
     Unknown,
 
     Space,
+    Tab,
     LineBreak,
 
     Slash,
@@ -11,6 +12,7 @@ pub enum TokenType {
     Dot,
     SemiColon,
 
+    Number,
     Identifier,
 
     EOF,
@@ -39,10 +41,11 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(c: String) -> Self {
-        let input_size = c.len();
+        let characters = c.chars().collect::<Vec<char>>();
+        let input_size = characters.len();
 
         let mut l = Self {
-            input: c.chars().collect::<Vec<char>>(),
+            input: characters,
             input_size,
             position: 0,
             read_position: 0,
@@ -67,6 +70,10 @@ impl Lexer {
                     literal: c.to_string(),
                     token_type: TokenType::Space,
                 }),
+                '\t' => Ok(Token {
+                    literal: c.to_string(),
+                    token_type: TokenType::Tab,
+                }),
                 '"' => Ok(Token {
                     literal: c.to_string(),
                     token_type: TokenType::DoubleQuote,
@@ -87,6 +94,10 @@ impl Lexer {
                     literal: c.to_string(),
                     token_type: TokenType::SemiColon,
                 }),
+                '$' => Ok(Token {
+                    literal: self.read_number(),
+                    token_type: TokenType::Number,
+                }),
                 _ => {
                     return if c.is_alphabetic() {
                         let identifier = self.read_identifier();
@@ -97,7 +108,7 @@ impl Lexer {
                         })
                     } else {
                         Ok(Token {
-                            literal: "".to_string(),
+                            literal: c.to_string(),
                             token_type: TokenType::Unknown,
                         })
                     };
@@ -109,9 +120,34 @@ impl Lexer {
 
     fn read_identifier(&mut self) -> String {
         let mut identifier = self.ch.unwrap().to_string();
+        let mut changed = false;
 
         while let Some(c) = self.peek_char() {
             if !c.is_alphanumeric() && c != '_' {
+                break;
+            }
+
+            changed = true;
+            self.read_char();
+            identifier += &*self.ch.unwrap().to_string();
+        }
+
+        if changed {
+            self.read_char();
+
+            if self.ch.is_some() {
+                identifier += &*self.ch.unwrap().to_string();
+            }
+        }
+
+        return identifier;
+    }
+
+    fn read_number(&mut self) -> String {
+        let mut identifier = String::new();
+
+        while let Some(c) = self.peek_char() {
+            if !c.is_ascii_hexdigit() {
                 break;
             }
 
